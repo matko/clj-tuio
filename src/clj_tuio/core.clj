@@ -1,23 +1,34 @@
 (ns clj-tuio.core
   (:import (com.illposed.osc OSCPortIn OSCListener OSCMessage))
-  (:use (clj-tuio util)))
+  (:use (clj-tuio util pointer))
+  (:use [clojure.tools.logging :only (warn info debug)]))
 
 (def tuio-2Dcur-address "/tuio/2Dcur")
 
-(defn- set-command [args]
-  "Handle an incoming fseq-command"
-  (let [id (.longValue (aget args 1))
-        x  (.floatValue (aget args 2))
-        y  (.floatValue (aget args 3))]
-    )
+(defmacro unless [condition & body]
+  `(when (not ~condition)
+     ~@body))
 
-  )
+(defn- set-command [arguments new-pointer move-pointer]
+  "Handle an incoming set-command"
+  (let [id (.longValue (aget arguments 1))
+        x  (.floatValue (aget arguments 2))
+        y  (.floatValue (aget arguments 3))
+        detected-pointer (pointer x y)]
+    (add id detected-pointer)
+    (if (alive? detected-pointer)
+      (unless (= (retrieve id) detected-pointer)
+              (move-pointer id detected-pointer))
+      (new-pointer id detected-pointer))))
 
-(defn- alive-command [_]
+(defn- alive-command
   "Handle an incoming alive-command"
-  nil)
-(defn- fseq-command [_]
+  [arguments remove-pointer]
+  (remove-selected! (vec arguments) remove-pointer))
+
+(defn- fseq-command
   "Handle an incoming fseq-command"
+  [arguments]
   nil)
 
 (defn- listener [new-pointer remove-pointer move-pointer]
@@ -28,22 +39,25 @@
             address (.getAddress message)]
         (case (address)
           tuio-2Dcur-address
-          ( (case (command)
-              "set" set-command
-              "alive" alive-command
-              "fseq" fseq-command) arguments)
-          ;; TODO; log a warning; default case
-          nil
+          ((case (command)
+              "set"  #(set-command % new-pointer move-pointer)
+              "alive" #(alive-command % remove-pointer)
+              "fseq" fseq-command
+              (fn [_] (warn "Fallthrough OSC command"))) arguments)
+          (warn "Fallthrough TUIO address")
           )))))
 
 (defn- receiver [port]
   (OSCPortIn. port))
 
-(defn- default-pointer-handler [_]
+(defn- default-pointer-handler [_ _]
   "A default handler for pointer events"
+  (warn "Unsupplied pointer handler")
   nil)
 
-(defn start [port & {:as handlers}]
+(defn start
+  "Starts listening for TUIO events on port, with optional named pointer-handler fn's :new-pointer, :remove-pointer and :move-pointer. Returns a handle to the event receiver."
+  [port & {:as handlers}]
   (let [{:keys [new-pointer
                 remove-pointer
                 move-pointer]
@@ -51,13 +65,14 @@
               remove-pointer default-pointer-handler
               move-pointer default-pointer-handler}}
         handlers]
-    (print move-pointer)
     (doto (receiver port)
       (.addListener ,,, tuio-2Dcur-address
                         (listener new-pointer remove-pointer move-pointer))
       (.startListening ,,,))))
 
-(defn stop [receiver]
+(defn stop
+  "Stops listening for TUIO events, and releases the port bound by receiver."
+  [receiver]
   (doto receiver
       (.stopListening)
       (.close))
