@@ -1,19 +1,8 @@
 (ns clj-tuio.core
   (:import (com.illposed.osc OSCPortIn OSCListener OSCMessage))
-  (:use clojure.tools.logging))
+  (:use clj-tuio.util))
+
 (def tuio-address "/tuio/2Dcur")
-
-(defrecord Pointer
-    [x y alive])
-
-(def printer (agent nil))
-
-(let [repl-out *out*]
-  (defn repl-print [& args]
-    (send printer (fn [_]
-                    (binding [*out* repl-out]
-                      (apply println args))))
-    nil))
 
 (defn- listener []
 (proxy [OSCListener] []
