@@ -13,7 +13,7 @@
 (defn add [id pointer]
   (swap! pointers #(assoc % id pointer)))
 
-(defn remove [id]
+(defn delete [id]
   (swap! pointers #(dissoc % id)))
 
 (defn pointer [id]
