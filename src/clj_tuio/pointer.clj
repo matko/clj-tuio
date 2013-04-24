@@ -7,6 +7,9 @@
 
 (defonce pointers (atom {}))
 
+(defn pointer [x y]
+  (Pointer. x y))
+
 (defn alive? [id]
   (contains? @pointers id))
 
@@ -16,5 +19,5 @@
 (defn delete [id]
   (swap! pointers #(dissoc % id)))
 
-(defn pointer [id]
+(defn retrieve [id]
   (get @pointers id))
