@@ -15,37 +15,45 @@
         x  (.floatValue (aget arguments 2))
         y  (.floatValue (aget arguments 3))
         detected-pointer (pointer x y)]
-    (add id detected-pointer)
-    (if (alive? detected-pointer)
+    (if (alive? id)
       (unless (= (retrieve id) detected-pointer)
               (move-pointer id detected-pointer))
-      (new-pointer id detected-pointer))))
+      (new-pointer id detected-pointer))
+    (add! id detected-pointer)))
 
 (defn- alive-command
   "Handle an incoming alive-command"
   [arguments remove-pointer]
-  (remove-selected! (vec arguments) remove-pointer))
+  (remove-some! (set arguments) remove-pointer))
 
 (defn- fseq-command
   "Handle an incoming fseq-command"
   [arguments]
   nil)
 
+(defn- source-command
+  "Handle an incoming source-command"
+  [arguments]
+  nil)
+
 (defn- listener [new-pointer remove-pointer move-pointer]
-  (proxy [OSCListener] []
-    (acceptMessage [time message]
-      (let [arguments (.getArguments message)
-            command (aget arguments 0)
-            address (.getAddress message)]
-        (case (address)
-          tuio-2Dcur-address
-          ((case (command)
-              "set"  #(set-command % new-pointer move-pointer)
-              "alive" #(alive-command % remove-pointer)
-              "fseq" fseq-command
-              (fn [_] (warn "Fallthrough OSC command"))) arguments)
-          (warn "Fallthrough TUIO address")
-          )))))
+  (letfn [(set [a]
+            (set-command a new-pointer move-pointer))
+          (alive [a]
+            (alive-command a remove-pointer))
+          (fseq [a]
+            (fseq-command a))
+          (source [a]
+            (source-command a))]
+    (proxy [OSCListener] []
+      (acceptMessage [time message]
+        (let [arguments (.getArguments message)
+              command (aget arguments 0)
+              address (.getAddress message)]
+           (({:set set
+                :alive alive
+                :fseq fseq
+                :source source} (keyword command)) arguments))))))
 
 (defn- receiver [port]
   (OSCPortIn. port))
