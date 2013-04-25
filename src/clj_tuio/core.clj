@@ -45,8 +45,8 @@
             (fseq-command a))
           (source [a]
             (source-command a))]
-    (proxy [OSCListener] []
-      (acceptMessage [time message]
+    (reify OSCListener
+      (acceptMessage [this time message]
         (let [arguments (.getArguments message)
               command (aget arguments 0)
               address (.getAddress message)]
