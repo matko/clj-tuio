@@ -28,13 +28,18 @@
 ;;                         current-pointers))
 ;;            (apply dissoc current-pointers difference))))
 
-(defn- remove-some [m s f]
-  (apply dissoc m
-         (for [[k v] m
-               :when (not (s k))]
-           (do
+(defn remove-some
+  "Applies fn f to each entry in map m that has a key that isn't contained in set s.
+Returns m without the entries whose keys are not present in s."
+  ([m s]
+      (remove-some m s (fn [_ _])))
+  ([m s f]
+      (apply dissoc m
+             (for [[k v] m
+                   :when (not (s k))]
+               (do
              (f k v)
-             k))))
+             k)))))
 
 (defn remove-some!
   "Calls fn f with all [id , point] entries for which id is not present in set s"

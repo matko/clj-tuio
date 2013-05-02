@@ -5,4 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.illposed.osc/javaosc-core "0.2"]
-                 [org.clojure/tools.logging "0.2.6"]])
+                 [org.clojure/tools.logging "0.2.6"]]
+  :profiles {:dev {:plugins [[lein-midje "3.0.0"]]
+                   :dependencies [[midje "1.5.1"]]}}
+  :main clj-tuio.core)

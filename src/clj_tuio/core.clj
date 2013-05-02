@@ -1,7 +1,18 @@
 (ns clj-tuio.core
   (:import (com.illposed.osc OSCPortIn OSCListener OSCMessage))
-  (:use (clj-tuio util pointer))
-  (:use [clojure.tools.logging :only (warn info debug)]))
+  (:use (clj-tuio pointer))
+  (:use [clojure.tools.logging :only (warn info debug)])
+  (:gen-class))
+
+(def printer (agent nil))
+
+(let [repl-out *out*
+      p printer]
+  (defn repl-print [& args]
+    (send p (fn [_]
+                    (binding [*out* repl-out]
+                      (apply println args))))
+    nil))
 
 (def tuio-2Dcur-address "/tuio/2Dcur")
 
@@ -85,3 +96,12 @@
       (.stopListening)
       (.close))
   nil)
+
+(defn -main [& args]
+  (println "Binding port 3333 with TUIO...")
+  (let [conn (start 3333
+                    :new-pointer (fn [& arg] (repl-print "new")))]
+    (println "Listening on port 3333 for TUIO events")
+    (println "Press any key to quit")
+    (read-line)
+    (stop conn)))
